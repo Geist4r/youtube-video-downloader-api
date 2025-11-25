@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from pytube import YouTube
+from pytubefix import YouTube
 import re
 
 app = Flask(__name__)
@@ -7,11 +7,24 @@ app = Flask(__name__)
 def download_video(url, resolution):
     try:
         yt = YouTube(url)
+        
+        # Debug: Print all available streams
+        print(f"Available progressive streams for {url}:")
+        for stream in yt.streams.filter(progressive=True, file_extension='mp4'):
+            print(f"  - {stream.resolution} - {stream.mime_type}")
+        
         stream = yt.streams.filter(progressive=True, file_extension='mp4', resolution=resolution).first()
         if stream:
-            stream.download()
+            out_dir = f"./downloads/{url.split('v=')[1].split('&')[0]}"
+            import os
+            os.makedirs(out_dir, exist_ok=True)
+            stream.download(output_path=out_dir)
             return True, None
         else:
+            print(f"\nTrying non-progressive streams:")
+            for stream in yt.streams.filter(file_extension='mp4', res=resolution):
+                print(f"  - {stream.resolution} - {stream.mime_type} - audio: {stream.includes_audio_track}")
+            
             return False, "Video with the specified resolution not found."
     except Exception as e:
         return False, str(e)
@@ -72,5 +85,36 @@ def video_info():
     else:
         return jsonify({"error": error_message}), 500
 
+
+@app.route('/available_resolutions', methods=['POST'])
+def available_resolutions():
+    data = request.get_json()
+    url = data.get('url')
+    
+    if not url:
+        return jsonify({"error": "Missing 'url' parameter in the request body."}), 400
+
+    if not is_valid_youtube_url(url):
+        return jsonify({"error": "Invalid YouTube URL."}), 400
+    
+    try:
+        yt = YouTube(url)
+        progressive_resolutions = list(set([
+            stream.resolution 
+            for stream in yt.streams.filter(progressive=True, file_extension='mp4')
+            if stream.resolution
+        ]))
+        all_resolutions = list(set([
+            stream.resolution 
+            for stream in yt.streams.filter(file_extension='mp4')
+            if stream.resolution
+        ]))
+        return jsonify({
+            "progressive": sorted(progressive_resolutions),
+            "all": sorted(all_resolutions)
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
 if __name__ == '__main__':
     app.run(debug=True)

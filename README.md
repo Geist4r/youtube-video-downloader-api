@@ -25,7 +25,7 @@ This project is designed to simplify the process of interacting with YouTube con
 
 ## Usage
 1. Clone this repository: `git clone https://github.com/zararashraf/youtube-video-downloader-api.git`
-2. Install the required libraries: `pip install flask pytube`
+2. Install the required libraries: `pip install flask pytubefix`
 3. Run the Flask application: `python main.py`
 4. Access the API endpoints using HTTP requests (e.g., POST requests in Postman).
 
@@ -43,6 +43,16 @@ This project is designed to simplify the process of interacting with YouTube con
 
 ### Get Video Info
 - **Endpoint:** `/video_info`
+- **HTTP Method:** POST
+- **Request Body:** JSON
+    ```json
+    {
+        "url": "https://www.youtube.com/watch?v=VIDEO_ID"
+    }
+    ```
+
+### Get Available Resolutions
+- **Endpoint:** `/available_resolutions`
 - **HTTP Method:** POST
 - **Request Body:** JSON
     ```json
