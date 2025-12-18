@@ -1,47 +1,49 @@
 from flask import Flask, request, jsonify
-from pytubefix import YouTube
+import yt_dlp
 import re
+import os
 
 app = Flask(__name__)
 
 def download_video(url, resolution):
     try:
-        yt = YouTube(url)
+        video_id = url.split('v=')[1].split('&')[0]
+        out_dir = f"./downloads/{video_id}"
+        os.makedirs(out_dir, exist_ok=True)
         
-        # Debug: Print all available streams
-        print(f"Available progressive streams for {url}:")
-        for stream in yt.streams.filter(progressive=True, file_extension='mp4'):
-            print(f"  - {stream.resolution} - {stream.mime_type}")
+        # yt-dlp options
+        ydl_opts = {
+            'format': f'bestvideo[height<={resolution[:-1]}]+bestaudio/best[height<={resolution[:-1]}]',
+            'outtmpl': os.path.join(out_dir, '%(title)s.%(ext)s'),
+            'merge_output_format': 'mp4',
+        }
         
-        stream = yt.streams.filter(progressive=True, file_extension='mp4', resolution=resolution).first()
-        if stream:
-            out_dir = f"./downloads/{url.split('v=')[1].split('&')[0]}"
-            import os
-            os.makedirs(out_dir, exist_ok=True)
-            stream.download(output_path=out_dir)
-            return True, None
-        else:
-            print(f"\nTrying non-progressive streams:")
-            for stream in yt.streams.filter(file_extension='mp4', res=resolution):
-                print(f"  - {stream.resolution} - {stream.mime_type} - audio: {stream.includes_audio_track}")
-            
-            return False, "Video with the specified resolution not found."
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+        
+        return True, None
     except Exception as e:
         return False, str(e)
 
 def get_video_info(url):
     try:
-        yt = YouTube(url)
-        stream = yt.streams.first()
-        video_info = {
-            "title": yt.title,
-            "author": yt.author,
-            "length": yt.length,
-            "views": yt.views,
-            "description": yt.description,
-            "publish_date": yt.publish_date,
+        ydl_opts = {
+            'quiet': True,
+            'no_warnings': True,
         }
-        return video_info, None
+        
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            
+            video_info = {
+                "title": info.get('title'),
+                "author": info.get('uploader'),
+                "length": info.get('duration'),
+                "views": info.get('view_count'),
+                "description": info.get('description'),
+                "publish_date": info.get('upload_date'),
+            }
+            return video_info, None
     except Exception as e:
         return None, str(e)
 
@@ -98,21 +100,34 @@ def available_resolutions():
         return jsonify({"error": "Invalid YouTube URL."}), 400
     
     try:
-        yt = YouTube(url)
-        progressive_resolutions = list(set([
-            stream.resolution 
-            for stream in yt.streams.filter(progressive=True, file_extension='mp4')
-            if stream.resolution
-        ]))
-        all_resolutions = list(set([
-            stream.resolution 
-            for stream in yt.streams.filter(file_extension='mp4')
-            if stream.resolution
-        ]))
-        return jsonify({
-            "progressive": sorted(progressive_resolutions),
-            "all": sorted(all_resolutions)
-        }), 200
+        ydl_opts = {
+            'quiet': True,
+            'no_warnings': True,
+        }
+        
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            
+            formats = info.get('formats', [])
+            
+            # Progressive (video+audio)
+            progressive_resolutions = list(set([
+                f"{f.get('height')}p"
+                for f in formats
+                if f.get('height') and f.get('vcodec') != 'none' and f.get('acodec') != 'none'
+            ]))
+            
+            # All video formats
+            all_resolutions = list(set([
+                f"{f.get('height')}p"
+                for f in formats
+                if f.get('height') and f.get('vcodec') != 'none'
+            ]))
+            
+            return jsonify({
+                "progressive": sorted(progressive_resolutions, key=lambda x: int(x[:-1])),
+                "all": sorted(all_resolutions, key=lambda x: int(x[:-1]))
+            }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
