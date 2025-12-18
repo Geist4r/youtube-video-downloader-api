@@ -11,11 +11,12 @@ def download_video(url, resolution):
         out_dir = f"./downloads/{video_id}"
         os.makedirs(out_dir, exist_ok=True)
         
-        # yt-dlp options
+        # yt-dlp options with iOS player client (bypasses bot detection)
         ydl_opts = {
             'format': f'bestvideo[height<={resolution[:-1]}]+bestaudio/best[height<={resolution[:-1]}]',
             'outtmpl': os.path.join(out_dir, '%(title)s.%(ext)s'),
             'merge_output_format': 'mp4',
+            'extractor_args': {'youtube': {'player_client': ['ios']}},
         }
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -30,6 +31,7 @@ def get_video_info(url):
         ydl_opts = {
             'quiet': True,
             'no_warnings': True,
+            'extractor_args': {'youtube': {'player_client': ['ios']}},
         }
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -103,6 +105,7 @@ def available_resolutions():
         ydl_opts = {
             'quiet': True,
             'no_warnings': True,
+            'extractor_args': {'youtube': {'player_client': ['ios']}},
         }
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
