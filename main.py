@@ -11,11 +11,10 @@ def download_video(url, resolution):
         out_dir = f"./downloads/{video_id}"
         os.makedirs(out_dir, exist_ok=True)
         
-        # yt-dlp options with multiple fallback strategies
+        # Use progressive format (video+audio combined, no ffmpeg needed)
         ydl_opts = {
-            'format': f'bestvideo[height<={resolution[:-1]}]+bestaudio/best[height<={resolution[:-1]}]',
+            'format': f'best[height<={resolution[:-1]}][ext=mp4]',
             'outtmpl': os.path.join(out_dir, '%(title)s.%(ext)s'),
-            'merge_output_format': 'mp4',
             'extractor_args': {
                 'youtube': {
                     'player_client': ['ios', 'mweb', 'android'],
