@@ -131,15 +131,15 @@ def available_resolutions():
         return jsonify({"error": "Invalid YouTube URL."}), 400
     
     try:
-        y
-        
-        # Add cookies if file exists
-        if os.path.exists('./cookies.txt'):
-            ydl_opts['cookiefile'] = './cookies.txt'dl_opts = {
+        ydl_opts = {
             'quiet': True,
             'no_warnings': True,
             'extractor_args': {'youtube': {'player_client': ['ios']}},
         }
+        
+        # Add cookies if file exists
+        if os.path.exists('./cookies.txt'):
+            ydl_opts['cookiefile'] = './cookies.txt'
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
