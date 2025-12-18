@@ -5,6 +5,10 @@ import os
 
 app = Flask(__name__)
 
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({"status": "healthy"}), 200
+
 def download_video(url, resolution):
     try:
         video_id = url.split('v=')[1].split('&')[0]
@@ -115,14 +119,6 @@ def available_resolutions():
     if not url:
         return jsonify({"error": "Missing 'url' parameter in the request body."}), 400
 
-                'youtube': {
-                    'player_client': ['ios', 'mweb', 'android'],
-                    'skip': ['translated_subs']
-                }
-            },
-            'http_headers': {
-                'User-Agent': 'com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)',
-            }
     if not is_valid_youtube_url(url):
         return jsonify({"error": "Invalid YouTube URL."}), 400
     
@@ -160,4 +156,6 @@ def available_resolutions():
         return jsonify({"error": str(e)}), 500
     
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    from waitress import serve
+    print("Starting YouTube Downloader API on port 5000...")
+    serve(app, host='0.0.0.0', port=5000)
