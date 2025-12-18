@@ -1,0 +1,452 @@
+version: '3.8'
+services:
+  n8n:
+    image: 'docker.n8n.io/n8nio/n8n:1.120.4'
+    container_name: n8n
+    ports:
+      - '5678:5678'
+    environment:
+      - 'WEBHOOK_URL=https://n8n.n8nsamerjonas.de'
+      - N8N_DEFAULT_BINARY_DATA_MODE=filesystem
+      - N8N_SECURE_COOKIE=true
+      - GENERIC_TIMEZONE=Europe/Berlin
+      - N8N_HOST=n8n.n8nsamerjonas.de
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - 'N8N_EDITOR_BASE_URL=https://n8n.n8nsamerjonas.de'
+      - DB_SQLITE_POOL_SIZE=10
+      - N8N_RUNNERS_ENABLED=true
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - EXECUTIONS_DATA_PRUNE=true
+      - EXECUTIONS_DATA_MAX_AGE=168
+      - N8N_PAYLOAD_SIZE_MAX=256
+      - N8N_CONCURRENCY_PRODUCTION_LIMIT=40
+      - NODE_OPTIONS=--max-old-space-size=16384
+      - EXECUTIONS_TIMEOUT=3600
+      - EXECUTIONS_TIMEOUT_MAX=7200
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      - N8N_GIT_NODE_DISABLE_BARE_REPOS=true
+    volumes:
+      - 'n8n-data:/home/node/.n8n'
+      - 'n8n-bin:/home/node/bin'
+    networks:
+      - automation-network
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'wget --no-verbose --tries=1 --spider http://localhost:5678/healthz || exit 1'
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 16G
+          cpus: '6'
+        reservations:
+          memory: 4G
+          cpus: '2'
+  minio:
+    image: 'quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z'
+    container_name: minio
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    environment:
+      - MINIO_ROOT_USER=SamerJonas
+      - MINIO_ROOT_PASSWORD=MiniIOSamerJonas
+    volumes:
+      - 'minio-data:/data'
+    command: 'server /data --console-address ":9001"'
+    networks:
+      - automation-network
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "timeout 5 bash -c '</dev/tcp/localhost/9000' || exit 1"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+  nca-toolkit-1:
+    image: 'localhost:5000/nca-toolkit:custom'
+    container_name: nca-toolkit-1
+    ports:
+      - '8081:8080'
+    environment:
+      - API_KEY=NCAToolkitSecureKey123
+      - 'S3_ENDPOINT_URL=http://minio:9000'
+      - 'S3_PUBLIC_URL=http://78.46.146.79:9000'
+      - S3_ACCESS_KEY=LU3T64PuIR21HFfP4V9c
+      - S3_SECRET_KEY=xF2Zsq7S4wsuPqA4K4uhoxW76Wi5lTzabp2dCxMC
+      - S3_BUCKET_NAME=nca-toolkit
+      - S3_REGION=us-east-1
+      - GUNICORN_TIMEOUT=3600
+    volumes:
+      - '/data/fonts/PlayfairDisplay-Regular.ttf:/usr/share/fonts/custom/PlayfairDisplay-Regular.ttf:ro'
+    depends_on:
+      - minio
+    networks:
+      - automation-network
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "timeout 5 bash -c '</dev/tcp/localhost/8080' || exit 1"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '10'
+          memory: 12G
+        reservations:
+          cpus: '4'
+          memory: 6G
+  nca-toolkit-2:
+    image: 'localhost:5000/nca-toolkit:custom'
+    container_name: nca-toolkit-2
+    ports:
+      - '8082:8080'
+    environment:
+      - API_KEY=NCAToolkitSecureKey123
+      - 'S3_ENDPOINT_URL=http://minio:9000'
+      - 'S3_PUBLIC_URL=http://78.46.146.79:9000'
+      - S3_ACCESS_KEY=LU3T64PuIR21HFfP4V9c
+      - S3_SECRET_KEY=xF2Zsq7S4wsuPqA4K4uhoxW76Wi5lTzabp2dCxMC
+      - S3_BUCKET_NAME=nca-toolkit
+      - S3_REGION=us-east-1
+      - GUNICORN_TIMEOUT=3600
+    depends_on:
+      - minio
+    networks:
+      - automation-network
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "timeout 5 bash -c '</dev/tcp/localhost/8080' || exit 1"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+        reservations:
+          cpus: '2'
+          memory: 4G
+  nca-toolkit-3:
+    image: 'localhost:5000/nca-toolkit:custom'
+    container_name: nca-toolkit-3
+    ports:
+      - '8083:8080'
+    environment:
+      - API_KEY=NCAToolkitSecureKey123
+      - 'S3_ENDPOINT_URL=http://minio:9000'
+      - 'S3_PUBLIC_URL=http://78.46.146.79:9000'
+      - S3_ACCESS_KEY=LU3T64PuIR21HFfP4V9c
+      - S3_SECRET_KEY=xF2Zsq7S4wsuPqA4K4uhoxW76Wi5lTzabp2dCxMC
+      - S3_BUCKET_NAME=nca-toolkit
+      - S3_REGION=us-east-1
+      - GUNICORN_TIMEOUT=3600
+    depends_on:
+      - minio
+    networks:
+      - automation-network
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "timeout 5 bash -c '</dev/tcp/localhost/8080' || exit 1"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+        reservations:
+          cpus: '2'
+          memory: 4G
+  nca-toolkit-4:
+    image: 'localhost:5000/nca-toolkit:custom'
+    container_name: nca-toolkit-4
+    ports:
+      - '8084:8080'
+    environment:
+      - API_KEY=NCAToolkitSecureKey123
+      - 'S3_ENDPOINT_URL=http://minio:9000'
+      - 'S3_PUBLIC_URL=http://78.46.146.79:9000'
+      - S3_ACCESS_KEY=LU3T64PuIR21HFfP4V9c
+      - S3_SECRET_KEY=xF2Zsq7S4wsuPqA4K4uhoxW76Wi5lTzabp2dCxMC
+      - S3_BUCKET_NAME=nca-toolkit
+      - S3_REGION=us-east-1
+      - GUNICORN_TIMEOUT=3600
+    depends_on:
+      - minio
+    networks:
+      - automation-network
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "timeout 5 bash -c '</dev/tcp/localhost/8080' || exit 1"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+        reservations:
+          cpus: '2'
+          memory: 4G
+  nca-toolkit-5:
+    image: 'localhost:5000/nca-toolkit:custom'
+    container_name: nca-toolkit-5
+    ports:
+      - '8085:8080'
+    environment:
+      - API_KEY=NCAToolkitSecureKey123
+      - 'S3_ENDPOINT_URL=http://minio:9000'
+      - 'S3_PUBLIC_URL=http://78.46.146.79:9000'
+      - S3_ACCESS_KEY=LU3T64PuIR21HFfP4V9c
+      - S3_SECRET_KEY=xF2Zsq7S4wsuPqA4K4uhoxW76Wi5lTzabp2dCxMC
+      - S3_BUCKET_NAME=nca-toolkit
+      - S3_REGION=us-east-1
+      - GUNICORN_TIMEOUT=3600
+    depends_on:
+      - minio
+    networks:
+      - automation-network
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "timeout 5 bash -c '</dev/tcp/localhost/8080' || exit 1"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+        reservations:
+          cpus: '2'
+          memory: 4G
+  nocodb:
+    image: 'nocodb/nocodb:latest'
+    container_name: nocodb
+    ports:
+      - '8008:8080'
+    volumes:
+      - 'nocodb-data:/usr/app/data'
+    networks:
+      - automation-network
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "timeout 5 bash -c '</dev/tcp/localhost/8080' || exit 1"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+  audiotracking:
+    image: 'localhost:5000/audiotracking:latest'
+    container_name: audiotracking
+    ports:
+      - '8002:8000'
+    networks:
+      - automation-network
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "timeout 5 bash -c '</dev/tcp/localhost/8000' || exit 1"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+  videotracking:
+    image: 'localhost:5000/videotracking:latest'
+    container_name: videotracking
+    ports:
+      - '8004:8000'
+    environment:
+      - 'S3_ENDPOINT_URL=http://minio:9000'
+      - 'S3_PUBLIC_URL=http://78.46.146.79:9000'
+      - S3_ACCESS_KEY=LU3T64PuIR21HFfP4V9c
+      - S3_SECRET_KEY=xF2Zsq7S4wsuPqA4K4uhoxW76Wi5lTzabp2dCxMC
+      - S3_BUCKET_NAME=nca-toolkit
+      - S3_REGION=us-east-1
+    depends_on:
+      - minio
+    networks:
+      - automation-network
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "timeout 5 bash -c '</dev/tcp/localhost/8000' || exit 1"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '6'
+          memory: 12G
+        reservations:
+          cpus: '4'
+          memory: 6G
+  auto-subtitle:
+    image: 'localhost:5000/auto-subtitle:latest'
+    container_name: auto-subtitle
+    ports:
+      - '8003:8000'
+    networks:
+      - automation-network
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "timeout 5 bash -c '</dev/tcp/localhost/8000' || exit 1"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+  youtube-downloader:
+    image: 'youtube-downloader:latest'
+    container_name: youtube-downloader
+    ports:
+      - '5050:5000'
+    volumes:
+      - 'youtube-downloads:/app/downloads'
+    networks:
+      - automation-network
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "timeout 5 bash -c '</dev/tcp/localhost/5000' || exit 1"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 512M
+  baserow-redis:
+    image: 'redis:7-alpine'
+    container_name: baserow-redis
+    command:
+      - /bin/sh
+      - '-c'
+      - 'redis-server --requirepass hu6a08cwp9ixzn8yclursnd9ifs389rqnv1grk0x6upw0bn8oz'
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'redis-cli -a hu6a08cwp9ixzn8yclursnd9ifs389rqnv1grk0x6upw0bn8oz ping || exit 1'
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - automation-network
+    restart: unless-stopped
+  baserow-db:
+    image: 'postgres:16'
+    container_name: baserow-db
+    environment:
+      - POSTGRES_DB=baserow
+      - POSTGRES_USER=baserow
+      - POSTGRES_PASSWORD=BaserowSecurePass123
+    volumes:
+      - 'baserow-db-data:/var/lib/postgresql/data'
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'pg_isready -U baserow'
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - automation-network
+    restart: unless-stopped
+  baserow:
+    image: 'baserow/baserow:latest'
+    container_name: baserow
+    ports:
+      - '8010:80'
+    environment:
+      - SECRET_KEY=4sgb93jrbwi9qoiby20tan4h547a33vhtjkhy9w21akqheq1ju
+      - DATABASE_PASSWORD=BaserowSecurePass123
+      - REDIS_PASSWORD=hu6a08cwp9ixzn8yclursnd9ifs389rqnv1grk0x6upw0bn8oz
+      - DATABASE_HOST=baserow-db
+      - DATABASE_NAME=baserow
+      - DATABASE_USER=baserow
+      - DATABASE_PORT=5432
+      - REDIS_HOST=baserow-redis
+      - REDIS_PORT=6379
+      - REDIS_PROTOCOL=redis
+      - REDIS_USER=default
+      - 'BASEROW_PUBLIC_URL=http://78.46.146.79:8010'
+      - BASEROW_BACKEND_BIND_ADDRESS=0.0.0.0
+      - BASEROW_BACKEND_PORT=8000
+      - BASEROW_EXTRA_ALLOWED_HOSTS=baserow-ys4w00k44oo44g4k80g84skg
+    volumes:
+      - 'baserow-data:/baserow/data'
+    depends_on:
+      baserow-db:
+        condition: service_healthy
+      baserow-redis:
+        condition: service_healthy
+    networks:
+      - automation-network
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "timeout 5 bash -c '</dev/tcp/localhost/80' || exit 1"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+volumes:
+  n8n-data:
+    driver: local
+  n8n-bin:
+    driver: local
+  minio-data:
+    driver: local
+  nocodb-data:
+    driver: local
+  baserow-data:
+    driver: local
+  baserow-db-data:
+    driver: local
+  youtube-downloads:
+    driver: local
+networks:
+  automation-network:
+    driver: bridge
