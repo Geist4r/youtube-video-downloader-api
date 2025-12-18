@@ -32,6 +32,10 @@ def download_video(url, resolution):
             }
         }
         
+        # Add cookies if file exists
+        if os.path.exists('./cookies.txt'):
+            ydl_opts['cookiefile'] = './cookies.txt'
+        
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
         
@@ -54,6 +58,10 @@ def get_video_info(url):
                 'User-Agent': 'com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)',
             }
         }
+        
+        # Add cookies if file exists
+        if os.path.exists('./cookies.txt'):
+            ydl_opts['cookiefile'] = './cookies.txt'
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
@@ -123,7 +131,11 @@ def available_resolutions():
         return jsonify({"error": "Invalid YouTube URL."}), 400
     
     try:
-        ydl_opts = {
+        y
+        
+        # Add cookies if file exists
+        if os.path.exists('./cookies.txt'):
+            ydl_opts['cookiefile'] = './cookies.txt'dl_opts = {
             'quiet': True,
             'no_warnings': True,
             'extractor_args': {'youtube': {'player_client': ['ios']}},
