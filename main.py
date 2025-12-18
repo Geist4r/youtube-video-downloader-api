@@ -11,12 +11,22 @@ def download_video(url, resolution):
         out_dir = f"./downloads/{video_id}"
         os.makedirs(out_dir, exist_ok=True)
         
-        # yt-dlp options with iOS player client (bypasses bot detection)
+        # yt-dlp options with multiple fallback strategies
         ydl_opts = {
             'format': f'bestvideo[height<={resolution[:-1]}]+bestaudio/best[height<={resolution[:-1]}]',
             'outtmpl': os.path.join(out_dir, '%(title)s.%(ext)s'),
             'merge_output_format': 'mp4',
-            'extractor_args': {'youtube': {'player_client': ['ios']}},
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['ios', 'mweb', 'android'],
+                    'skip': ['translated_subs']
+                }
+            },
+            'http_headers': {
+                'User-Agent': 'com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-us,en;q=0.5',
+            }
         }
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -31,7 +41,15 @@ def get_video_info(url):
         ydl_opts = {
             'quiet': True,
             'no_warnings': True,
-            'extractor_args': {'youtube': {'player_client': ['ios']}},
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['ios', 'mweb', 'android'],
+                    'skip': ['translated_subs']
+                }
+            },
+            'http_headers': {
+                'User-Agent': 'com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)',
+            }
         }
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -98,6 +116,14 @@ def available_resolutions():
     if not url:
         return jsonify({"error": "Missing 'url' parameter in the request body."}), 400
 
+                'youtube': {
+                    'player_client': ['ios', 'mweb', 'android'],
+                    'skip': ['translated_subs']
+                }
+            },
+            'http_headers': {
+                'User-Agent': 'com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)',
+            }
     if not is_valid_youtube_url(url):
         return jsonify({"error": "Invalid YouTube URL."}), 400
     
